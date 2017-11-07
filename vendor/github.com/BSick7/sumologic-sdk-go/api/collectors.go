@@ -6,6 +6,8 @@ import (
 	"strconv"
 )
 
+// SumoLogic API Reference
+// https://help.sumologic.com/APIs/01Collector-Management-API/Collector-API-Methods-and-Examples
 type Collectors struct {
 	executor *ClientExecutor
 }

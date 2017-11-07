@@ -4,6 +4,8 @@ import (
 	"fmt"
 )
 
+// SumoLogic API Reference
+// https://help.sumologic.com/APIs/01Collector-Management-API/Source-API
 type Sources struct {
 	executor    *ClientExecutor
 	collectorID int
@@ -17,35 +19,35 @@ func NewSources(executor *ClientExecutor, collectorID int) *Sources {
 }
 
 type Source struct {
-	ID                         int               `json:"id"`
-	Name                       string            `json:"name"`
-	Description                string            `json:"description,omitempty"`
-	Category                   string            `json:"category"`
-	HostName                   string            `json:"hostName,omitempty"`
-	AutomaticDateParsing       bool              `json:"automaticDateParsing"`
-	MultilineProcessingEnabled bool              `json:"multilineProcessingEnabled"`
-	UseAutolineMatching        bool              `json:"useAutolineMatching"`
-	ForceTimeZone              bool              `json:"forceTimeZone"`
-	TimeZone                   string            `json:"timeZone"`
-	Filters                    []SourceFilter    `json:"filters"`
-	CutoffTimestamp            int               `json:"cutoffTimestamp"`
-	Encoding                   string            `json:"encoding"`
-	MessagePerRequest          bool              `json:"messagePerRequest"`
-	PathExpression             string            `json:"pathExpression,omitempty"`
-	Blacklist                  []SourceBlacklist `json:"blacklist,omitempty"`
-	SourceType                 string            `json:"sourceType"`
-	Metrics                    []string          `json:"metrics,omitempty"`
-	Interval                   int               `json:"interval,omitempty"`
-	Alive                      bool              `json:"alive,omitempty"`
+	ID                         int            `json:"id"`
+	Name                       string         `json:"name"`
+	SourceType                 string         `json:"sourceType,omitempty"`
+	Description                string         `json:"description,omitempty"`
+	Category                   string         `json:"category,omitempty"`
+	HostName                   string         `json:"hostName,omitempty"`
+	TimeZone                   string         `json:"timeZone,omitempty"`
+	AutomaticDateParsing       bool           `json:"automaticDateParsing,omitempty"`
+	MultilineProcessingEnabled bool           `json:"multilineProcessingEnabled,omitempty"`
+	UseAutolineMatching        bool           `json:"useAutolineMatching,omitempty"`
+	ManualPrefixRegexp         string         `json:"manualPrefixRegexp,omitempty"`
+	ForceTimeZone              bool           `json:"forceTimeZone,omitempty"`
+	DefaultDateFormat          string         `json:"defaultDateFormat,omitempty"`
+	DefaultDateFormats         []DateFormat   `json:"defaultDateFormats,omitempty"`
+	Filters                    []SourceFilter `json:"filters,omitempty"`
+	CutoffTimestamp            int64          `json:"cutoffTimestamp,omitempty"`
+	CutoffRelativeTime         string         `json:"cutoffRelativeTime,omitempty"`
 }
 
 type SourceFilter struct {
 	FilterType string `json:"filterType"`
 	Name       string `json:"name"`
 	Regexp     string `json:"regexp"`
+	Mask       string `json:"mask,omitempty"`
 }
 
-type SourceBlacklist struct {
+type DateFormat struct {
+	Format  string `json:"format"`
+	Locator string `json:"locator,omitempty"`
 }
 
 func (s *Sources) List() ([]*Source, error) {

@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+
 	"github.com/BSick7/sumologic-sdk-go/api"
 )
 

@@ -105,14 +105,6 @@ func resourceCollectorCreate(d *schema.ResourceData, meta interface{}) error {
 	newCollector := &api.CollectorCreate{
 		CollectorType: d.Get("collector_type").(string),
 		Name:          d.Get("name").(string),
-		Description:   "",
-		Category:      "",
-	}
-	if raw, ok := d.GetOk("description"); ok {
-		newCollector.Description = raw.(string)
-	}
-	if raw, ok := d.GetOk("category"); ok {
-		newCollector.Category = raw.(string)
 	}
 
 	collector, err := client.Collectors().Create(newCollector)
@@ -187,7 +179,6 @@ func resourceCollectorUpdate(d *schema.ResourceData, meta interface{}) error {
 		collector.TargetCPU = raw.(int64)
 	}
 
-	collector.CutoffRelativeTime = d.Get("cutoff_relative_time").(string)
 	if raw, ok := d.GetOk("cutoff_timestamp"); ok {
 		collector.CutoffTimestamp = raw.(int64)
 	}
