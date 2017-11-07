@@ -31,6 +31,7 @@ func Provider() terraform.ResourceProvider {
 		},
 
 		ResourcesMap: map[string]*schema.Resource{
+			"sumologic_collector": resourceCollector(),
 		},
 
 		ConfigureFunc: providerConfigure,
