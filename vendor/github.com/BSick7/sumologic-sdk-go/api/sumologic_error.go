@@ -4,19 +4,19 @@ import (
 	"fmt"
 )
 
-type APIError struct {
+type SumologicError struct {
 	ID      string `json:"id"`
 	Status  int    `json:"status"`
 	Code    string `json:"code"`
 	Message string `json:"message"`
 }
 
-func NewAPIError(req *ClientExecutorRequest) *APIError {
-	res := &APIError{}
-	req.GetJSONBody(res)
-	return res
+func NewSumologicError(res *ClientExecutorResponse) *SumologicError {
+	err := &SumologicError{}
+	res.BodyJSON(err)
+	return err
 }
 
-func (r *APIError) Error() string {
+func (r *SumologicError) Error() string {
 	return fmt.Sprintf("[id=%s] %d %s %s", r.ID, r.Status, r.Code, r.Message)
 }

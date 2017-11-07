@@ -1,5 +1,5 @@
 hash: 1157c6fc8956062613f5c8e2a116cea68e68a83cd6bde03e1291e9798cfe2115
-updated: 2017-11-07T13:58:58.3379692-05:00
+updated: 2017-11-07T18:32:45.0694091-05:00
 imports:
 - name: github.com/agext/levenshtein
   version: 5f10fee965225ac1eecdc234c09daf5cd9e7f7b6
@@ -47,9 +47,13 @@ imports:
 - name: github.com/blang/semver
   version: 2ee87856327ba09384cabd113bc6b5d174e9ec0f
 - name: github.com/BSick7/sumologic-sdk-go
-  version: 4de3c91e449fccc0d80c4502647f3788d39c717c
+  version: a4a84a207eb8c7bcfc84a4e6d4e0fb6a2a7a9058
   subpackages:
   - api
+- name: github.com/davecgh/go-spew
+  version: ecdeabc65495df2dec95d7c4a4c3e021903035e5
+  subpackages:
+  - spew
 - name: github.com/go-ini/ini
   version: 6e4869b434bd001f6983749881c7ead3545887d8
 - name: github.com/hashicorp/errwrap
@@ -96,6 +100,8 @@ imports:
   - ast
   - parser
   - scanner
+- name: github.com/hashicorp/logutils
+  version: 0dc08b1671f34c4250ce212759ebd880f743d883
 - name: github.com/hashicorp/terraform
   version: e0fd3ddd704b230897723a7ca251f36b71c2b67a
   subpackages:
@@ -105,8 +111,11 @@ imports:
   - config/module
   - dag
   - flatmap
+  - helper/config
   - helper/hashcode
   - helper/hilmapstructure
+  - helper/logging
+  - helper/resource
   - helper/schema
   - moduledeps
   - plugin

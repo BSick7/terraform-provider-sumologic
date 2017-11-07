@@ -8,24 +8,34 @@ import (
 )
 
 type MockSession struct {
-	Session
-	address   string
-	accessID  string
-	accessKey string
-	server    *httptest.Server
-	handler   http.HandlerFunc
+	impl    *SessionImpl
+	server  *httptest.Server
+	handler http.HandlerFunc
 }
 
-func NewMockSession() *MockSession {
+func NewMockSession(checkAuth bool) *MockSession {
 	s := &MockSession{
 		handler: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {}),
 	}
-	s.SetAddress(DEFAULT_SUMO_ADDRESS)
-	s.SetCredentials("mockaccessid", "mockaccesskey")
 
 	s.server = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if checkAuth {
+			if user, pw, ok := r.BasicAuth(); !ok {
+				http.Error(w, "Full authentication is required to access this resource", http.StatusUnauthorized)
+				return
+			} else if user != s.impl.accessID || pw != s.impl.accessKey {
+				http.Error(w, "Unauthorized", http.StatusUnauthorized)
+				return
+			}
+		}
 		s.handler(w, r)
 	}))
+
+	s.impl = &SessionImpl{
+		accessID:  "mockaccessid",
+		accessKey: "mockaccesskey",
+		address:   fmt.Sprint(s.server.URL, "/api/v1"),
+	}
 
 	return s
 }
@@ -34,28 +44,26 @@ func (s *MockSession) Handle(handler http.HandlerFunc) {
 	s.handler = handler
 }
 
+func (s *MockSession) Discover() {
+	s.impl.Discover()
+}
+
 func (s *MockSession) SetAddress(address string) {
-	base, _ := url.Parse(address)
-	s.address = fmt.Sprintf("%s%s", s.server.URL, base.Path)
+	s.impl.SetAddress(address)
 }
 
 func (s *MockSession) SetCredentials(accessID, accessKey string) {
-	s.accessID = accessID
-	s.accessKey = accessKey
+	s.impl.SetCredentials(accessID, accessKey)
 }
 
 func (s *MockSession) Address() string {
-	return s.address
+	return s.impl.Address()
 }
 
 func (s *MockSession) EndpointURL(endpoint string) *url.URL {
-	uri, _ := url.Parse(fmt.Sprintf("%s%s", s.address, endpoint))
-	return uri
+	return s.impl.EndpointURL(endpoint)
 }
 
 func (s *MockSession) CreateTransport() http.RoundTripper {
-	return NewAnonymousTransport(func(req *http.Request) (*http.Response, error) {
-		req.SetBasicAuth(s.accessID, s.accessKey)
-		return http.DefaultTransport.RoundTrip(req)
-	})
+	return s.impl.CreateTransport()
 }

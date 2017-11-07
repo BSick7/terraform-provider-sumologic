@@ -68,7 +68,8 @@ func (c *Collectors) List(offset int, limit int) ([]*Collector, error) {
 		"limit":  []string{strconv.Itoa(limit)},
 	})
 
-	if err := req.Get(); err != nil {
+	res, err := req.Get()
+	if err != nil {
 		return nil, err
 	}
 
@@ -76,7 +77,7 @@ func (c *Collectors) List(offset int, limit int) ([]*Collector, error) {
 		Collectors []*Collector `json:"collectors"`
 	}
 	list := &listResponse{}
-	if err := req.GetJSONBody(list); err != nil {
+	if err := res.BodyJSON(list); err != nil {
 		return nil, err
 	}
 	return list.Collectors, nil
@@ -89,7 +90,8 @@ func (c *Collectors) Get(id int) (*Collector, error) {
 	}
 	req.SetEndpoint(fmt.Sprintf("/collectors/%d", id))
 
-	if err := req.Get(); err != nil {
+	res, err := req.Get()
+	if err != nil {
 		return nil, err
 	}
 
@@ -97,7 +99,7 @@ func (c *Collectors) Get(id int) (*Collector, error) {
 		Collector *Collector `json:"collector"`
 	}
 	item := &getResponse{}
-	if err := req.GetJSONBody(item); err != nil {
+	if err := res.BodyJSON(item); err != nil {
 		return nil, err
 	}
 	return item.Collector, nil
@@ -115,7 +117,8 @@ func (c *Collectors) Create(collector *CollectorCreate) (*Collector, error) {
 	}
 	req.SetJSONBody(&postRequest{Collector: collector})
 
-	if err := req.Post(); err != nil {
+	res, err := req.Post()
+	if err != nil {
 		return nil, err
 	}
 
@@ -123,7 +126,7 @@ func (c *Collectors) Create(collector *CollectorCreate) (*Collector, error) {
 		Collector *Collector `json:"collector"`
 	}
 	item := &postResponse{}
-	if err := req.GetJSONBody(item); err != nil {
+	if err := res.BodyJSON(item); err != nil {
 		return nil, err
 	}
 	return item.Collector, nil
@@ -136,7 +139,8 @@ func (c *Collectors) Update(collector *Collector) (*Collector, error) {
 	}
 	startreq.SetEndpoint(fmt.Sprintf("/collectors/%d", collector.ID))
 
-	if err := startreq.Put(); err != nil {
+	startres, err := startreq.Put()
+	if err != nil {
 		return nil, err
 	}
 
@@ -145,14 +149,15 @@ func (c *Collectors) Update(collector *Collector) (*Collector, error) {
 		return nil, err
 	}
 	finishreq.SetEndpoint(fmt.Sprintf("/collectors/%d", collector.ID))
-	finishreq.SetRequestHeader("If-Match", startreq.GetResponseHeader("ETag"))
+	finishreq.SetRequestHeader("If-Match", startres.Header("ETag"))
 
 	type putRequest struct {
 		Collector *Collector `json:"collector"`
 	}
 	finishreq.SetJSONBody(&putRequest{Collector: collector})
 
-	if err := finishreq.Put(); err != nil {
+	finishres, err := finishreq.Put()
+	if err != nil {
 		return nil, err
 	}
 
@@ -160,7 +165,7 @@ func (c *Collectors) Update(collector *Collector) (*Collector, error) {
 		Collector *Collector `json:"collector"`
 	}
 	item := &putResponse{}
-	if err := finishreq.GetJSONBody(item); err != nil {
+	if err := finishres.BodyJSON(item); err != nil {
 		return nil, err
 	}
 	return item.Collector, nil
@@ -173,7 +178,7 @@ func (c *Collectors) Delete(collector *Collector) error {
 	}
 	req.SetEndpoint(fmt.Sprintf("/collectors/%d", collector.ID))
 
-	if err := req.Delete(); err != nil {
+	if _, err := req.Delete(); err != nil {
 		return err
 	}
 

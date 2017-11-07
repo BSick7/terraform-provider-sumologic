@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"log"
 	"net/http"
 	"net/http/httputil"
@@ -13,123 +13,109 @@ import (
 )
 
 type ClientExecutorRequest struct {
-	debug   bool
-	session Session
-	client  *http.Client
-	req     *http.Request
-	reqBody *bytes.Buffer
-	res     *http.Response
+	debug    bool
+	session  Session
+	client   *http.Client
+	endpoint *url.URL
+	body     []byte
+	headers  map[string]string
 }
 
 func NewClientExecutorRequest(session Session, client *http.Client) (*ClientExecutorRequest, error) {
-	buf := bytes.NewBuffer(nil)
-	req, err := http.NewRequest("GET", "/", buf)
-	if err != nil {
-		return nil, fmt.Errorf("error creating request: %s", err)
-	}
 	return &ClientExecutorRequest{
-		debug:   os.Getenv("SUMO_DEBUG") == "1",
-		session: session,
-		client:  client,
-		req:     req,
-		reqBody: buf,
+		debug:    os.Getenv("SUMO_DEBUG") == "1",
+		session:  session,
+		client:   client,
+		endpoint: session.EndpointURL("/"),
+		body:     nil,
+		headers:  map[string]string{},
 	}, nil
 }
 
 func (r *ClientExecutorRequest) SetEndpoint(endpoint string) *ClientExecutorRequest {
-	r.req.URL = r.session.EndpointURL(endpoint)
+	query := ""
+	if r.endpoint != nil {
+		query = r.endpoint.RawQuery
+	}
+	eurl := r.session.EndpointURL(endpoint)
+	if eurl == nil {
+		return r
+	}
+	r.endpoint = eurl
+	r.endpoint.RawQuery = query
 	return r
 }
 
 func (r *ClientExecutorRequest) SetQuery(params url.Values) *ClientExecutorRequest {
-	r.req.URL.RawQuery = params.Encode()
+	r.endpoint.RawQuery = params.Encode()
 	return r
 }
 
 func (r *ClientExecutorRequest) SetRequestHeader(key string, value string) *ClientExecutorRequest {
-	r.req.Header.Set(key, value)
+	r.headers[key] = value
 	return r
 }
 
 func (r *ClientExecutorRequest) SetJSONBody(input interface{}) error {
-	encoder := json.NewEncoder(r.reqBody)
+	buf := bytes.NewBuffer(make([]byte, 0))
+	encoder := json.NewEncoder(buf)
 	if err := encoder.Encode(input); err != nil {
 		return fmt.Errorf("error encoding json body: %s", err)
 	}
-	r.req.Header.Set("Content-Type", "application/json")
+	r.body = buf.Bytes()
+	r.headers["Content-Type"] = "application/json"
 	return nil
 }
 
-func (r *ClientExecutorRequest) Get() error {
-	r.req.Method = "GET"
-	return r.do()
+func (r *ClientExecutorRequest) Get() (*ClientExecutorResponse, error) {
+	return r.do("GET")
 }
 
-func (r *ClientExecutorRequest) Post() error {
-	r.req.Method = "POST"
-	return r.do()
+func (r *ClientExecutorRequest) Post() (*ClientExecutorResponse, error) {
+	return r.do("POST")
 }
 
-func (r *ClientExecutorRequest) Put() error {
-	r.req.Method = "PUT"
-	return r.do()
+func (r *ClientExecutorRequest) Put() (*ClientExecutorResponse, error) {
+	return r.do("PUT")
 }
 
-func (r *ClientExecutorRequest) Delete() error {
-	r.req.Method = "DELETE"
-	return r.do()
+func (r *ClientExecutorRequest) Delete() (*ClientExecutorResponse, error) {
+	return r.do("DELETE")
 }
 
-func (r *ClientExecutorRequest) do() error {
+func (r *ClientExecutorRequest) do(method string) (*ClientExecutorResponse, error) {
+	var body io.Reader
+	if r.body != nil && len(r.body) > 0 {
+		body = bytes.NewReader(r.body)
+	}
+
+	req, err := http.NewRequest(method, r.endpoint.String(), body)
+	if err != nil {
+		return nil, fmt.Errorf("error creating request: %s", err)
+	}
+
+	for k, v := range r.headers {
+		req.Header.Set(k, v)
+	}
+
 	if r.debug {
-		raw, _ := httputil.DumpRequestOut(r.req, true)
+		raw, _ := httputil.DumpRequestOut(req, true)
 		log.Println(string(raw))
 	}
 
-	res, err := r.client.Do(r.req)
-	r.res = res
+	res, err := r.client.Do(req)
+	response := &ClientExecutorResponse{res: res}
 	if r.debug && res != nil {
-		raw, _ := httputil.DumpResponse(res, false)
+		raw, _ := httputil.DumpResponse(res, true)
 		log.Println(string(raw))
 	}
 	if err != nil {
-		return fmt.Errorf("error requesting %s %s: %s", r.req.Method, r.req.URL, err)
+		return response, fmt.Errorf("error requesting %s %s: %s", req.Method, req.URL, err)
 	}
 
 	if res.StatusCode < 200 || res.StatusCode >= 300 {
-		return NewAPIError(r)
+		return response, NewSumologicError(response)
 	}
 
-	return nil
-}
-
-func (r *ClientExecutorRequest) GetJSONBody(out interface{}) error {
-	decoder := json.NewDecoder(r.res.Body)
-	defer r.res.Body.Close()
-	if err := decoder.Decode(out); err != nil {
-		return fmt.Errorf("error decoding json body: %s", err)
-	}
-	return nil
-}
-
-func (r *ClientExecutorRequest) GetStringBody() (string, error) {
-	defer r.res.Body.Close()
-	raw, err := ioutil.ReadAll(r.res.Body)
-	if err != nil {
-		return "", fmt.Errorf("error reading response: %s", err)
-	}
-	return string(raw), nil
-}
-
-func (r *ClientExecutorRequest) GetRawBody() ([]byte, error) {
-	defer r.res.Body.Close()
-	raw, err := ioutil.ReadAll(r.res.Body)
-	if err != nil {
-		return nil, fmt.Errorf("error reading response: %s", err)
-	}
-	return raw, nil
-}
-
-func (r *ClientExecutorRequest) GetResponseHeader(key string) string {
-	return r.res.Header.Get(key)
+	return response, nil
 }

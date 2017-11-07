@@ -11,6 +11,7 @@ import (
 )
 
 type Session interface {
+	Discover()
 	SetAddress(address string)
 	SetCredentials(accessID, accessKey string)
 	EndpointURL(endpoint string) *url.URL

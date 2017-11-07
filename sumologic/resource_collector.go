@@ -17,7 +17,7 @@ func resourceCollector() *schema.Resource {
 		Exists: resourceCollectorExists,
 
 		Schema: map[string]*schema.Schema{
-			"collector_type": {
+			"type": {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
@@ -103,13 +103,16 @@ func resourceCollectorCreate(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*api.Client)
 
 	newCollector := &api.CollectorCreate{
-		CollectorType: d.Get("collector_type").(string),
+		CollectorType: d.Get("type").(string),
 		Name:          d.Get("name").(string),
 	}
 
 	collector, err := client.Collectors().Create(newCollector)
 	if err != nil {
 		return err
+	}
+	if collector == nil {
+		return fmt.Errorf("collector was not created")
 	}
 	d.SetId(fmt.Sprintf("%d", collector.ID))
 
@@ -136,7 +139,7 @@ func resourceCollectorRead(d *schema.ResourceData, meta interface{}) error {
 	d.Set("name", collector.Name)
 	d.Set("description", collector.Description)
 	d.Set("category", collector.Category)
-	d.Set("collector_type", collector.CollectorType)
+	d.Set("type", collector.CollectorType)
 	d.Set("collector_version", collector.CollectorVersion)
 
 	d.Set("host_name", collector.HostName)
@@ -209,7 +212,7 @@ func resourceCollectorExists(d *schema.ResourceData, meta interface{}) (bool, er
 	}
 
 	_, err = client.Collectors().Get(id)
-	if aerr, ok := err.(*api.APIError); ok && aerr.Code == "InvalidCollector" {
+	if serr, ok := err.(*api.SumologicError); ok && serr.Status == 404 {
 		return false, nil
 	} else if err != nil {
 		return false, err

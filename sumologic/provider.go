@@ -32,6 +32,7 @@ func Provider() terraform.ResourceProvider {
 
 		ResourcesMap: map[string]*schema.Resource{
 			"sumologic_collector": resourceCollector(),
+			"sumologic_source":    resourceSource(),
 		},
 
 		ConfigureFunc: providerConfigure,
@@ -47,8 +48,11 @@ func providerConfigure(d *schema.ResourceData) (interface{}, error) {
 		session.SetAddress(raw.(string))
 	}
 
+	log.Println("[INFO] Discovering SumoLogic API Endpoint")
+	session.Discover()
+
 	log.Println("[INFO] Initializing SumoLogic client")
 	client := api.NewClient(session)
-	client.Discover()
+
 	return client, nil
 }

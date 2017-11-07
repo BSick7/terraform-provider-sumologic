@@ -26,11 +26,11 @@ type Source struct {
 	Category                   string         `json:"category,omitempty"`
 	HostName                   string         `json:"hostName,omitempty"`
 	TimeZone                   string         `json:"timeZone,omitempty"`
+	ForceTimeZone              bool           `json:"forceTimeZone,omitempty"`
 	AutomaticDateParsing       bool           `json:"automaticDateParsing,omitempty"`
 	MultilineProcessingEnabled bool           `json:"multilineProcessingEnabled,omitempty"`
 	UseAutolineMatching        bool           `json:"useAutolineMatching,omitempty"`
 	ManualPrefixRegexp         string         `json:"manualPrefixRegexp,omitempty"`
-	ForceTimeZone              bool           `json:"forceTimeZone,omitempty"`
 	DefaultDateFormat          string         `json:"defaultDateFormat,omitempty"`
 	DefaultDateFormats         []DateFormat   `json:"defaultDateFormats,omitempty"`
 	Filters                    []SourceFilter `json:"filters,omitempty"`
@@ -57,7 +57,8 @@ func (s *Sources) List() ([]*Source, error) {
 	}
 	req.SetEndpoint(fmt.Sprintf("/collectors/%d/sources", s.collectorID))
 
-	if err := req.Get(); err != nil {
+	res, err := req.Get()
+	if err != nil {
 		return nil, err
 	}
 
@@ -65,7 +66,7 @@ func (s *Sources) List() ([]*Source, error) {
 		Sources []*Source `json:"sources"`
 	}
 	list := &listResponse{}
-	if err := req.GetJSONBody(list); err != nil {
+	if err := res.BodyJSON(list); err != nil {
 		return nil, err
 	}
 	return list.Sources, nil
@@ -78,7 +79,8 @@ func (s *Sources) Get(id int) (*Source, error) {
 	}
 	req.SetEndpoint(fmt.Sprintf("/collectors/%d/sources/%d", s.collectorID, id))
 
-	if err := req.Get(); err != nil {
+	res, err := req.Get()
+	if err != nil {
 		return nil, err
 	}
 
@@ -86,7 +88,7 @@ func (s *Sources) Get(id int) (*Source, error) {
 		Source *Source `json:"source"`
 	}
 	item := &getResponse{}
-	if err := req.GetJSONBody(item); err != nil {
+	if err := res.BodyJSON(item); err != nil {
 		return nil, err
 	}
 	return item.Source, nil
@@ -104,7 +106,8 @@ func (s *Sources) Create(source *Source) (*Source, error) {
 	}
 	req.SetJSONBody(&postRequest{Source: source})
 
-	if err := req.Post(); err != nil {
+	res, err := req.Post()
+	if err != nil {
 		return nil, err
 	}
 
@@ -112,7 +115,7 @@ func (s *Sources) Create(source *Source) (*Source, error) {
 		Source *Source `json:"source"`
 	}
 	item := &postResponse{}
-	if err := req.GetJSONBody(item); err != nil {
+	if err := res.BodyJSON(item); err != nil {
 		return nil, err
 	}
 	return item.Source, nil
@@ -125,7 +128,8 @@ func (s *Sources) Update(source *Source) (*Source, error) {
 	}
 	startreq.SetEndpoint(fmt.Sprintf("/collectors/%d/sources/%d", s.collectorID, source.ID))
 
-	if err := startreq.Put(); err != nil {
+	startres, err := startreq.Put()
+	if err != nil {
 		return nil, err
 	}
 
@@ -134,14 +138,15 @@ func (s *Sources) Update(source *Source) (*Source, error) {
 		return nil, err
 	}
 	finishreq.SetEndpoint(fmt.Sprintf("/collectors/%d/sources/%d", s.collectorID, source.ID))
-	finishreq.SetRequestHeader("If-Match", startreq.GetResponseHeader("ETag"))
+	finishreq.SetRequestHeader("If-Match", startres.Header("ETag"))
 
 	type putRequest struct {
 		Source *Source `json:"source"`
 	}
 	finishreq.SetJSONBody(&putRequest{Source: source})
 
-	if err := finishreq.Put(); err != nil {
+	finishres, err := finishreq.Put()
+	if err != nil {
 		return nil, err
 	}
 
@@ -149,7 +154,7 @@ func (s *Sources) Update(source *Source) (*Source, error) {
 		Source *Source `json:"source"`
 	}
 	item := &putResponse{}
-	if err := finishreq.GetJSONBody(item); err != nil {
+	if err := finishres.BodyJSON(item); err != nil {
 		return nil, err
 	}
 	return item.Source, nil
@@ -162,7 +167,7 @@ func (s *Sources) Delete(source *Source) error {
 	}
 	req.SetEndpoint(fmt.Sprintf("/collectors/%d/sources/%d", s.collectorID, source.ID))
 
-	if err := req.Delete(); err != nil {
+	if _, err := req.Delete(); err != nil {
 		return err
 	}
 
