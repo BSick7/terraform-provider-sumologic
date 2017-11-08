@@ -9,20 +9,15 @@ import (
 	"github.com/hashicorp/terraform/helper/schema"
 )
 
-func resourceCollector() *schema.Resource {
+func resourceHostedCollector() *schema.Resource {
 	return &schema.Resource{
-		Create: resourceCollectorCreate,
-		Read:   resourceCollectorRead,
-		Update: resourceCollectorUpdate,
-		Delete: resourceCollectorDelete,
-		Exists: resourceCollectorExists,
+		Create: resourceHostedCollectorCreate,
+		Read:   resourceHostedCollectorRead,
+		Update: resourceHostedCollectorUpdate,
+		Delete: resourceHostedCollectorDelete,
+		Exists: resourceHostedCollectorExists,
 
 		Schema: map[string]*schema.Schema{
-			"type": {
-				Type:     schema.TypeString,
-				Required: true,
-				ForceNew: true,
-			},
 			"name": {
 				Type:     schema.TypeString,
 				Required: true,
@@ -93,11 +88,11 @@ You can only use hours, days, and weeks to specify cutoffRelativeTime. No other 
 	}
 }
 
-func resourceCollectorCreate(d *schema.ResourceData, meta interface{}) error {
+func resourceHostedCollectorCreate(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*api.Client)
 
 	newCollector := &api.CollectorCreate{
-		CollectorType: d.Get("type").(string),
+		CollectorType: "Hosted",
 		Name:          d.Get("name").(string),
 	}
 
@@ -110,14 +105,14 @@ func resourceCollectorCreate(d *schema.ResourceData, meta interface{}) error {
 	}
 	d.SetId(fmt.Sprintf("%d", collector.ID))
 
-	if err := resourceCollectorUpdate(d, meta); err != nil {
+	if err := resourceHostedCollectorUpdate(d, meta); err != nil {
 		return err
 	}
 
-	return resourceCollectorRead(d, meta)
+	return resourceHostedCollectorRead(d, meta)
 }
 
-func resourceCollectorRead(d *schema.ResourceData, meta interface{}) error {
+func resourceHostedCollectorRead(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*api.Client)
 
 	id, err := strconv.Atoi(d.Id())
@@ -130,7 +125,6 @@ func resourceCollectorRead(d *schema.ResourceData, meta interface{}) error {
 		return err
 	}
 
-	d.Set("type", collector.CollectorType)
 	d.Set("name", collector.Name)
 	d.Set("description", collector.Description)
 	d.Set("category", collector.Category)
@@ -154,7 +148,7 @@ func resourceCollectorRead(d *schema.ResourceData, meta interface{}) error {
 	return nil
 }
 
-func resourceCollectorUpdate(d *schema.ResourceData, meta interface{}) error {
+func resourceHostedCollectorUpdate(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*api.Client)
 
 	id, err := strconv.Atoi(d.Id())
@@ -164,7 +158,7 @@ func resourceCollectorUpdate(d *schema.ResourceData, meta interface{}) error {
 
 	collector := &api.Collector{
 		ID:            id,
-		CollectorType: d.Get("type").(string),
+		CollectorType: "Hosted",
 		Name:          d.Get("name").(string),
 		Description:   d.Get("description").(string),
 		Category:      d.Get("category").(string),
@@ -185,7 +179,7 @@ func resourceCollectorUpdate(d *schema.ResourceData, meta interface{}) error {
 	return nil
 }
 
-func resourceCollectorDelete(d *schema.ResourceData, meta interface{}) error {
+func resourceHostedCollectorDelete(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*api.Client)
 
 	id, err := strconv.Atoi(d.Id())
@@ -196,7 +190,7 @@ func resourceCollectorDelete(d *schema.ResourceData, meta interface{}) error {
 	return client.Collectors().Delete(&api.Collector{ID: id})
 }
 
-func resourceCollectorExists(d *schema.ResourceData, meta interface{}) (bool, error) {
+func resourceHostedCollectorExists(d *schema.ResourceData, meta interface{}) (bool, error) {
 	client := meta.(*api.Client)
 
 	id, err := strconv.Atoi(d.Id())

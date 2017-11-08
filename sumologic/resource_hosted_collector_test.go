@@ -23,12 +23,12 @@ func TestAccCollector_Basic(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
-		CheckDestroy: testAccCheckSumologicCollectorDestroy,
+		CheckDestroy: testAccCheckSLHostedCollectorDestroy,
 		Steps: []resource.TestStep{
 			{
 				Config: testAccSumoLogicCollectorBasicConfig,
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheckSumologicCollectorExists("sumologic_collector.collector1", collector),
+					testAccCheckSumologicCollectorExists("sumologic_hosted_collector.collector1", collector),
 					testCheck,
 				),
 			},
@@ -64,9 +64,9 @@ func testAccCheckSumologicCollectorExists(n string, res *api.Collector) resource
 	}
 }
 
-func testAccCheckSumologicCollectorDestroy(s *terraform.State) error {
+func testAccCheckSLHostedCollectorDestroy(s *terraform.State) error {
 	for _, rs := range s.RootModule().Resources {
-		if rs.Type != "sumologic_collector" {
+		if rs.Type != "sumologic_hosted_collector" {
 			continue
 		}
 
@@ -86,8 +86,7 @@ func testAccCheckSumologicCollectorDestroy(s *terraform.State) error {
 }
 
 var testAccSumoLogicCollectorBasicConfig = fmt.Sprint(`
-resource "sumologic_collector" "collector1" {
-  type        = "Hosted"
+resource "sumologic_hosted_collector" "collector1" {
   name        = "collector1-testacc"
   description = "Collector 1 (Acceptance Test)"
 }
