@@ -31,6 +31,21 @@ func TestGet_file(t *testing.T) {
 	}
 }
 
+// https://github.com/hashicorp/terraform/issues/11438
+func TestGet_fileDecompressorExt(t *testing.T) {
+	dst := tempDir(t)
+	u := testModule("basic-tgz")
+
+	if err := Get(dst, u); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	mainPath := filepath.Join(dst, "main.tf")
+	if _, err := os.Stat(mainPath); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+}
+
 // https://github.com/hashicorp/terraform/issues/8418
 func TestGet_filePercent2F(t *testing.T) {
 	dst := tempDir(t)
@@ -130,6 +145,44 @@ func TestGetAny_archive(t *testing.T) {
 	}
 }
 
+func TestGet_archiveRooted(t *testing.T) {
+	dst := tempDir(t)
+	u := testModule("archive-rooted/archive.tar.gz")
+	if err := Get(dst, u); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	mainPath := filepath.Join(dst, "root", "hello.txt")
+	if _, err := os.Stat(mainPath); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+}
+
+func TestGet_archiveSubdirWild(t *testing.T) {
+	dst := tempDir(t)
+	u := testModule("archive-rooted/archive.tar.gz")
+	u += "//*"
+	if err := Get(dst, u); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	mainPath := filepath.Join(dst, "hello.txt")
+	if _, err := os.Stat(mainPath); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+}
+
+func TestGet_archiveSubdirWildMultiMatch(t *testing.T) {
+	dst := tempDir(t)
+	u := testModule("archive-rooted-multi/archive.tar.gz")
+	u += "//*"
+	if err := Get(dst, u); err == nil {
+		t.Fatal("should error")
+	} else if !strings.Contains(err.Error(), "multiple") {
+		t.Fatalf("err: %s", err)
+	}
+}
+
 func TestGetAny_file(t *testing.T) {
 	dst := tempDir(t)
 	u := testModule("basic-file/foo.txt")
@@ -144,8 +197,6 @@ func TestGetAny_file(t *testing.T) {
 	}
 }
 
-/*
-TODO
 func TestGetAny_dir(t *testing.T) {
 	dst := tempDir(t)
 	u := filepath.Join("./test-fixtures", "basic")
@@ -167,7 +218,6 @@ func TestGetAny_dir(t *testing.T) {
 		}
 	}
 }
-*/
 
 func TestGetFile(t *testing.T) {
 	dst := tempFile(t)
@@ -310,5 +360,21 @@ func TestGetFile_checksumURL(t *testing.T) {
 
 	if v := getter.GetFileURL.Query().Get("checksum"); v != "" {
 		t.Fatalf("bad: %s", v)
+	}
+}
+
+func TestGetFile_filename(t *testing.T) {
+	dst := tempDir(t)
+	u := testModule("basic-file/foo.txt")
+
+	u += "?filename=bar.txt"
+
+	if err := GetAny(dst, u); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	mainPath := filepath.Join(dst, "bar.txt")
+	if _, err := os.Stat(mainPath); err != nil {
+		t.Fatalf("err: %s", err)
 	}
 }

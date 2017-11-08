@@ -25,21 +25,21 @@ type Link struct {
 }
 
 func (ll *Link) fetch(s uintptr) {
-	var lifr sysLifreq
+	var lifr lifreq
 	for i := 0; i < len(ll.Name); i++ {
 		lifr.Name[i] = int8(ll.Name[i])
 	}
 	ioc := int64(sysSIOCGLIFINDEX)
 	if err := ioctl(s, uintptr(ioc), unsafe.Pointer(&lifr)); err == nil {
-		ll.Index = int(littleEndian.Uint32(lifr.Lifru[:4]))
+		ll.Index = int(nativeEndian.Uint32(lifr.Lifru[:4]))
 	}
 	ioc = int64(sysSIOCGLIFFLAGS)
 	if err := ioctl(s, uintptr(ioc), unsafe.Pointer(&lifr)); err == nil {
-		ll.Flags = int(littleEndian.Uint64(lifr.Lifru[:8]))
+		ll.Flags = int(nativeEndian.Uint64(lifr.Lifru[:8]))
 	}
 	ioc = int64(sysSIOCGLIFMTU)
 	if err := ioctl(s, uintptr(ioc), unsafe.Pointer(&lifr)); err == nil {
-		ll.MTU = int(littleEndian.Uint32(lifr.Lifru[:4]))
+		ll.MTU = int(nativeEndian.Uint32(lifr.Lifru[:4]))
 	}
 	switch ll.Type {
 	case sysIFT_IPV4, sysIFT_IPV6, sysIFT_6TO4:
@@ -70,8 +70,8 @@ func Links(af int, name string) ([]Link, error) {
 
 func links(eps []endpoint, name string) ([]Link, error) {
 	var lls []Link
-	lifn := sysLifnum{Flags: sysLIFC_NOXMIT | sysLIFC_TEMPORARY | sysLIFC_ALLZONES | sysLIFC_UNDER_IPMP}
-	lifc := sysLifconf{Flags: sysLIFC_NOXMIT | sysLIFC_TEMPORARY | sysLIFC_ALLZONES | sysLIFC_UNDER_IPMP}
+	lifn := lifnum{Flags: sysLIFC_NOXMIT | sysLIFC_TEMPORARY | sysLIFC_ALLZONES | sysLIFC_UNDER_IPMP}
+	lifc := lifconf{Flags: sysLIFC_NOXMIT | sysLIFC_TEMPORARY | sysLIFC_ALLZONES | sysLIFC_UNDER_IPMP}
 	for _, ep := range eps {
 		lifn.Family = uint16(ep.af)
 		ioc := int64(sysSIOCGLIFNUM)
@@ -84,14 +84,18 @@ func links(eps []endpoint, name string) ([]Link, error) {
 		b := make([]byte, lifn.Count*sizeofLifreq)
 		lifc.Family = uint16(ep.af)
 		lifc.Len = lifn.Count * sizeofLifreq
-		littleEndian.PutUint64(lifc.Lifcu[:], uint64(uintptr(unsafe.Pointer(&b[0]))))
+		if len(lifc.Lifcu) == 8 {
+			nativeEndian.PutUint64(lifc.Lifcu[:], uint64(uintptr(unsafe.Pointer(&b[0]))))
+		} else {
+			nativeEndian.PutUint32(lifc.Lifcu[:], uint32(uintptr(unsafe.Pointer(&b[0]))))
+		}
 		ioc = int64(sysSIOCGLIFCONF)
 		if err := ioctl(ep.s, uintptr(ioc), unsafe.Pointer(&lifc)); err != nil {
 			continue
 		}
 		nb := make([]byte, 32) // see LIFNAMSIZ in net/if.h
 		for i := 0; i < int(lifn.Count); i++ {
-			lifr := (*sysLifreq)(unsafe.Pointer(&b[i*sizeofLifreq]))
+			lifr := (*lifreq)(unsafe.Pointer(&b[i*sizeofLifreq]))
 			for i := 0; i < 32; i++ {
 				if lifr.Name[i] == 0 {
 					nb = nb[:i]

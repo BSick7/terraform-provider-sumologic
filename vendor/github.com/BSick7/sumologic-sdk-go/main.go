@@ -21,12 +21,12 @@ func main() {
 	fmt.Println(string(raw), err)
 
 	/*
-	collector, err := client.Collectors().Create(&api.CollectorCreate{
-		CollectorType: "Hosted",
-		Name:          "abc-collector",
-		Description:   "",
-		Category:      "",
-	})
-	fmt.Printf("%+v\n%s\n", collector, err)
+		collector, err := client.Collectors().Create(&api.CollectorCreate{
+			CollectorType: "Hosted",
+			Name:          "abc-collector",
+			Description:   "",
+			Category:      "",
+		})
+		fmt.Printf("%+v\n%s\n", collector, err)
 	*/
 }

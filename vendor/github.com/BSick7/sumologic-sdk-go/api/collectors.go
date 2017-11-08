@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net/url"
 	"strconv"
+	"time"
 )
 
 // SumoLogic API Reference
@@ -35,10 +36,23 @@ type Collector struct {
 	Category           string          `json:"category"`
 	LastSeenAlive      int64           `json:"lastSeenAlive,omitempty"`
 	Alive              bool            `json:"alive,omitempty"`
-	CutoffTimestamp    int64           `json:"cutoffTimestamp,omitempty"`
+	CutoffTimestamp    time.Time       `json:"-"`
+	CutoffTimestampMs  int64           `json:"cutoffTimestamp,omitempty"`
 	CutoffRelativeTime string          `json:"cutoffRelativeTime,omitempty"`
 	TargetCPU          int64           `json:"targetCPU,omitempty"`
 	HostName           string          `json:"hostName,omitempty"`
+}
+
+// This will coerce CutoffTimestampMs to CutoffTimestamp
+func (c *Collector) SyncTimestamp() {
+	// Sumologic passes this around as number of milliseconds since epoch
+	// time.Unix() returns number of seconds
+	c.CutoffTimestampMs = c.CutoffTimestamp.Unix() * 1000
+}
+
+// This will coerce CutoffTimestamp to CutoffTimestampMs
+func (c *Collector) SyncTimestampMs() {
+	c.CutoffTimestamp = time.Unix(c.CutoffTimestampMs*1000, 0)
 }
 
 type CollectorCreate struct {
@@ -80,6 +94,11 @@ func (c *Collectors) List(offset int, limit int) ([]*Collector, error) {
 	if err := res.BodyJSON(list); err != nil {
 		return nil, err
 	}
+	if list.Collectors != nil {
+		for _, collector := range list.Collectors {
+			collector.SyncTimestamp()
+		}
+	}
 	return list.Collectors, nil
 }
 
@@ -101,6 +120,9 @@ func (c *Collectors) Get(id int) (*Collector, error) {
 	item := &getResponse{}
 	if err := res.BodyJSON(item); err != nil {
 		return nil, err
+	}
+	if item.Collector != nil {
+		item.Collector.SyncTimestamp()
 	}
 	return item.Collector, nil
 }
@@ -133,6 +155,8 @@ func (c *Collectors) Create(collector *CollectorCreate) (*Collector, error) {
 }
 
 func (c *Collectors) Update(collector *Collector) (*Collector, error) {
+	collector.SyncTimestampMs()
+
 	startreq, err := c.executor.NewRequest()
 	if err != nil {
 		return nil, err

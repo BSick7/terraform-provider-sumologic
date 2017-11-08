@@ -2,6 +2,7 @@ package api
 
 import (
 	"fmt"
+	"time"
 )
 
 // SumoLogic API Reference
@@ -35,8 +36,29 @@ type Source struct {
 	DefaultDateFormat          string         `json:"defaultDateFormat,omitempty"`
 	DefaultDateFormats         []DateFormat   `json:"defaultDateFormats,omitempty"`
 	Filters                    []SourceFilter `json:"filters,omitempty"`
-	CutoffTimestamp            int64          `json:"cutoffTimestamp,omitempty"`
+	CutoffTimestamp            time.Time      `json:"-"`
+	CutoffTimestampMs          int64          `json:"cutoffTimestamp,omitempty"`
 	CutoffRelativeTime         string         `json:"cutoffRelativeTime,omitempty"`
+}
+
+// This will coerce CutoffTimestampMs to CutoffTimestamp
+func (s *Source) SyncTimestamp() {
+	// Sumologic passes this around as number of milliseconds since epoch
+	// time.Unix() returns number of seconds
+	s.CutoffTimestampMs = s.CutoffTimestamp.Unix() * 1000
+}
+
+// This will coerce CutoffTimestamp to CutoffTimestampMs
+func (s *Source) SyncTimestampMs() {
+	s.CutoffTimestamp = time.Unix(s.CutoffTimestampMs*1000, 0)
+}
+
+type SourceCreate struct {
+	SourceType        string `json:"sourceType"`
+	Name              string `json:"name"`
+	Description       string `json:"description"`
+	Category          string `json:"category"`
+	MessagePerRequest *bool  `json:"messagePerRequest,omitempty"`
 }
 
 type SourceFilter struct {
@@ -70,6 +92,11 @@ func (s *Sources) List() ([]*Source, error) {
 	if err := res.BodyJSON(list); err != nil {
 		return nil, err
 	}
+	if list.Sources != nil {
+		for _, source := range list.Sources {
+			source.SyncTimestamp()
+		}
+	}
 	return list.Sources, nil
 }
 
@@ -92,10 +119,13 @@ func (s *Sources) Get(id int) (*Source, error) {
 	if err := res.BodyJSON(item); err != nil {
 		return nil, err
 	}
+	if item.Source != nil {
+		item.Source.SyncTimestamp()
+	}
 	return item.Source, nil
 }
 
-func (s *Sources) Create(source *Source) (*Source, error) {
+func (s *Sources) Create(source *SourceCreate) (*Source, error) {
 	req, err := s.executor.NewRequest()
 	if err != nil {
 		return nil, err
@@ -103,7 +133,7 @@ func (s *Sources) Create(source *Source) (*Source, error) {
 	req.SetEndpoint(fmt.Sprintf("/collectors/%d/sources", s.collectorID))
 
 	type postRequest struct {
-		Source *Source `json:"source"`
+		Source *SourceCreate `json:"source"`
 	}
 	req.SetJSONBody(&postRequest{Source: source})
 
@@ -123,6 +153,8 @@ func (s *Sources) Create(source *Source) (*Source, error) {
 }
 
 func (s *Sources) Update(source *Source) (*Source, error) {
+	source.SyncTimestampMs()
+
 	startreq, err := s.executor.NewRequest()
 	if err != nil {
 		return nil, err
