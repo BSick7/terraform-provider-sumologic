@@ -139,7 +139,7 @@ func (c *Collectors) Update(collector *Collector) (*Collector, error) {
 	}
 	startreq.SetEndpoint(fmt.Sprintf("/collectors/%d", collector.ID))
 
-	startres, err := startreq.Put()
+	startres, err := startreq.Get()
 	if err != nil {
 		return nil, err
 	}

@@ -1,5 +1,5 @@
 hash: 1157c6fc8956062613f5c8e2a116cea68e68a83cd6bde03e1291e9798cfe2115
-updated: 2017-11-07T18:32:45.0694091-05:00
+updated: 2017-11-08T16:22:47.4208136-05:00
 imports:
 - name: github.com/agext/levenshtein
   version: 5f10fee965225ac1eecdc234c09daf5cd9e7f7b6
@@ -47,7 +47,7 @@ imports:
 - name: github.com/blang/semver
   version: 2ee87856327ba09384cabd113bc6b5d174e9ec0f
 - name: github.com/BSick7/sumologic-sdk-go
-  version: a4a84a207eb8c7bcfc84a4e6d4e0fb6a2a7a9058
+  version: f7463de9c88ef1ab98e23dd1b5da89096e615e5b
   subpackages:
   - api
 - name: github.com/davecgh/go-spew
