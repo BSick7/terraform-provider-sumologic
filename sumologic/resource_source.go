@@ -3,138 +3,150 @@ package sumologic
 import (
 	"fmt"
 	"strconv"
+	"time"
 
 	"github.com/BSick7/sumologic-sdk-go/api"
 	"github.com/hashicorp/terraform/helper/schema"
 )
 
-func resourceSource() *schema.Resource {
-	return &schema.Resource{
-		Create: resourceSourceCreate,
-		Read:   resourceSourceRead,
-		Update: resourceSourceUpdate,
-		Delete: resourceSourceDelete,
-		Exists: resourceSourceExists,
+// All Source Types and parameters:
+// https://help.sumologic.com/Send-Data/Sources/03Use-JSON-to-Configure-Sources
 
-		Schema: map[string]*schema.Schema{
-			"collector_id": {
-				Type:     schema.TypeInt,
-				Required: true,
-				ForceNew: true,
+func defaultSchema() map[string]*schema.Schema {
+	return map[string]*schema.Schema{
+		"collector_id": {
+			Type:     schema.TypeInt,
+			Required: true,
+			ForceNew: true,
+		},
+		"name": {
+			Type:     schema.TypeString,
+			Required: true,
+		},
+		"description": {
+			Type:     schema.TypeString,
+			Optional: true,
+		},
+		"host": {
+			Type:     schema.TypeString,
+			Computed: true,
+			Optional: true,
+		},
+		"category": {
+			Type:     schema.TypeString,
+			Optional: true,
+		},
+		"time_zone": {
+			Type:     schema.TypeString,
+			Computed: true,
+			Optional: true,
+		},
+		"force_time_zone": {
+			Type:     schema.TypeBool,
+			Computed: true,
+			Optional: true,
+		},
+		"automatic_date_parsing": {
+			Type:     schema.TypeBool,
+			Computed: true,
+			Optional: true,
+		},
+		"multiline_processing_enabled": {
+			Type:     schema.TypeBool,
+			Computed: true,
+			Optional: true,
+		},
+		"use_autoline_matching": {
+			Type:     schema.TypeBool,
+			Computed: true,
+			Optional: true,
+		},
+		"manual_prefix_regexp": {
+			Type:     schema.TypeString,
+			Computed: true,
+			Optional: true,
+		},
+		"default_date_format": {
+			Type:     schema.TypeString,
+			Computed: true,
+			Optional: true,
+		},
+		"default_date_formats": {
+			Type: schema.TypeList,
+			Elem: &schema.Schema{
+				Type: schema.TypeString,
 			},
-			"name": {
-				Type:     schema.TypeString,
-				Required: true,
+			Computed: true,
+			Optional: true,
+		},
+		"filters": {
+			Type: schema.TypeList,
+			Elem: &schema.Schema{
+				Type: schema.TypeString,
 			},
-			"type": {
-				Type:     schema.TypeString,
-				Required: true,
-				ForceNew: true,
-			},
-			"description": {
-				Type:     schema.TypeString,
-				Optional: true,
-			},
-			"category": {
-				Type:     schema.TypeString,
-				Optional: true,
-			},
-			"host_name": {
-				Type:     schema.TypeString,
-				Computed: true,
-				Optional: true,
-			},
-			"time_zone": {
-				Type:     schema.TypeString,
-				Computed: true,
-				Optional: true,
-			},
-			"force_time_zone": {
-				Type:     schema.TypeBool,
-				Computed: true,
-				Optional: true,
-			},
-			"automatic_date_parsing": {
-				Type:     schema.TypeBool,
-				Computed: true,
-				Optional: true,
-			},
-			"multiline_processing_enabled": {
-				Type:     schema.TypeBool,
-				Computed: true,
-				Optional: true,
-			},
-			"use_autoline_matching": {
-				Type:     schema.TypeBool,
-				Computed: true,
-				Optional: true,
-			},
-			"manual_prefix_regexp": {
-				Type:     schema.TypeString,
-				Computed: true,
-				Optional: true,
-			},
-			"default_date_format": {
-				Type:     schema.TypeString,
-				Computed: true,
-				Optional: true,
-			},
-			"default_date_formats": {
-				Type: schema.TypeList,
-				Elem: &schema.Schema{
-					Type: schema.TypeString,
-				},
-				Computed: true,
-				Optional: true,
-			},
-			"filters": {
-				Type: schema.TypeList,
-				Elem: &schema.Schema{
-					Type: schema.TypeString,
-				},
-				Computed: true,
-				Optional: true,
-			},
-			"cutoff_timestamp": {
-				Type:     schema.TypeFloat,
-				Computed: true,
-				Optional: true,
-			},
-			"cutoff_relative_time": {
-				Type:     schema.TypeString,
-				Computed: true,
-				Optional: true,
-			},
+			Computed: true,
+			Optional: true,
+		},
+		"cutoff_timestamp": {
+			Type:        schema.TypeString,
+			Computed:    true,
+			Optional:    true,
+			Description: "Only collect data more recent than this timestamp (RFC3339 Formatted)",
+		},
+		"cutoff_relative_time": {
+			Type:     schema.TypeString,
+			Computed: true,
+			Optional: true,
+			Description: `Can be specified instead of cutoffTimestamp to provide a relative offset with respect to the current time.
+Example: use -1h, -1d, or -1w to collect data that's less than one hour, one day, or one week old, respectively.
+You can only use hours, days, and weeks to specify cutoffRelativeTime. No other time units are supported.`,
 		},
 	}
 }
 
-func resourceSourceCreate(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*api.Client)
-	collectorID := d.Get("collector_id").(int)
-
-	newSource := &api.Source{
-		SourceType: d.Get("type").(string),
-		Name:       d.Get("name").(string),
-	}
-
-	source, err := client.Collectors().Sources(collectorID).Create(newSource)
+func readSourceFromTerraform(d *schema.ResourceData) (*api.Source, error) {
+	id, err := strconv.Atoi(d.Id())
 	if err != nil {
-		return err
-	}
-	if source == nil {
-		return fmt.Errorf("source was not created")
-	}
-	d.SetId(fmt.Sprintf("%d", source.ID))
-
-	if err := resourceSourceUpdate(d, meta); err != nil {
-		return err
+		return nil, fmt.Errorf("invalid source id: %s", err)
 	}
 
-	return resourceSourceRead(d, meta)
+	source := &api.Source{
+		ID:                         id,
+		Name:                       d.Get("name").(string),
+		Description:                d.Get("description").(string),
+		Category:                   d.Get("category").(string),
+		HostName:                   d.Get("host").(string),
+		TimeZone:                   d.Get("time_zone").(string),
+		ForceTimeZone:              d.Get("force_time_zone").(bool),
+		AutomaticDateParsing:       d.Get("automatic_date_parsing").(bool),
+		MultilineProcessingEnabled: d.Get("multiline_processing_enabled").(bool),
+		UseAutolineMatching:        d.Get("use_autoline_matching").(bool),
+		ManualPrefixRegexp:         d.Get("manual_prefix_regexp").(string),
+		DefaultDateFormat:          d.Get("default_date_format").(string),
+		CutoffRelativeTime:         d.Get("cutoff_relative_time").(string),
+	}
+
+	// We store cutoff timestamp as string since tf doesn't support int64/time.Time
+	if raw, ok := d.GetOk("cutoff_timestamp"); ok {
+		source.CutoffTimestamp, _ = time.Parse(time.RFC3339, raw.(string))
+	}
+
+	if raw, ok := d.GetOk("default_date_formats"); ok {
+		if ddfs, valid := raw.([]api.DateFormat); valid {
+			source.DefaultDateFormats = ddfs
+		}
+	}
+
+	if raw, ok := d.GetOk("filters"); ok {
+		if filters, valid := raw.([]api.SourceFilter); valid {
+			source.Filters = filters
+		}
+	}
+
+	return source, nil
 }
 
-func resourceSourceRead(d *schema.ResourceData, meta interface{}) error {
+func readSourceFromSumologic(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*api.Client)
 	collectorID := d.Get("collector_id").(int)
 
@@ -146,6 +158,9 @@ func resourceSourceRead(d *schema.ResourceData, meta interface{}) error {
 	source, err := client.Collectors().Sources(collectorID).Get(id)
 	if err != nil {
 		return err
+	} else if source == nil {
+		d.SetId("")
+		return nil
 	}
 
 	d.Set("name", source.Name)
@@ -167,53 +182,32 @@ func resourceSourceRead(d *schema.ResourceData, meta interface{}) error {
 
 	d.Set("filters", source.Filters)
 
-	d.Set("cutoff_timestamp", source.CutoffTimestamp)
 	d.Set("cutoff_relative_time", source.CutoffRelativeTime)
+
+	// We store cutoff timestamp as string since tf doesn't support int64/time.Time
+	d.Set("cutoff_timestamp", source.CutoffTimestamp.Format(time.RFC3339))
 
 	return nil
 }
 
-func resourceSourceUpdate(d *schema.ResourceData, meta interface{}) error {
+func createSource(d *schema.ResourceData, meta interface{}, sourceType string) (*api.Source, error) {
 	client := meta.(*api.Client)
 	collectorID := d.Get("collector_id").(int)
 
-	id, err := strconv.Atoi(d.Id())
-	if err != nil {
-		return fmt.Errorf("invalid id: %s", err)
+	mpr := d.Get("message_per_request").(bool)
+
+	newSource := &api.SourceCreate{
+		SourceType:        sourceType,
+		Name:              d.Get("name").(string),
+		Description:       d.Get("description").(string),
+		Category:          d.Get("category").(string),
+		MessagePerRequest: &mpr,
 	}
 
-	source := &api.Source{ID: id}
-
-	source.Name = d.Get("name").(string)
-	source.SourceType = d.Get("type").(string)
-	source.Description = d.Get("description").(string)
-	source.Category = d.Get("category").(string)
-
-	source.HostName = d.Get("host_name").(string)
-	source.TimeZone = d.Get("time_zone").(string)
-	source.ForceTimeZone = d.Get("force_time_zone").(bool)
-
-	source.AutomaticDateParsing = d.Get("automatic_date_parsing").(bool)
-	source.MultilineProcessingEnabled = d.Get("multiline_processing_enabled").(bool)
-	source.UseAutolineMatching = d.Get("use_autoline_matching").(bool)
-
-	source.ManualPrefixRegexp = d.Get("manual_prefix_regexp").(string)
-	source.DefaultDateFormat = d.Get("default_date_format").(string)
-
-	// TODO: source.DefaultDateFormats "default_date_formats"
-	// TODO: source.Filters "filters"
-
-	if raw, ok := d.GetOk("cutoff_timestamp"); ok {
-		source.CutoffTimestamp = raw.(int64)
-	}
-
-	if _, err := client.Collectors().Sources(collectorID).Update(source); err != nil {
-		return err
-	}
-	return nil
+	return client.Collectors().Sources(collectorID).Create(newSource)
 }
 
-func resourceSourceDelete(d *schema.ResourceData, meta interface{}) error {
+func deleteSource(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*api.Client)
 	collectorID := d.Get("collector_id").(int)
 
@@ -225,7 +219,7 @@ func resourceSourceDelete(d *schema.ResourceData, meta interface{}) error {
 	return client.Collectors().Sources(collectorID).Delete(&api.Source{ID: id})
 }
 
-func resourceSourceExists(d *schema.ResourceData, meta interface{}) (bool, error) {
+func doesSourceExist(d *schema.ResourceData, meta interface{}) (bool, error) {
 	client := meta.(*api.Client)
 	collectorID := d.Get("collector_id").(int)
 

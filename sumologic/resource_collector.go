@@ -3,6 +3,7 @@ package sumologic
 import (
 	"fmt"
 	"strconv"
+	"time"
 
 	"github.com/BSick7/sumologic-sdk-go/api"
 	"github.com/hashicorp/terraform/helper/schema"
@@ -34,7 +35,7 @@ func resourceCollector() *schema.Resource {
 				Type:     schema.TypeString,
 				Optional: true,
 			},
-			"collector_version": {
+			"version": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
@@ -53,26 +54,23 @@ func resourceCollector() *schema.Resource {
 				Computed: true,
 				Optional: true,
 			},
-			"target_cpu": {
-				Type:     schema.TypeFloat,
-				Computed: true,
-				Optional: true,
-			},
 			"alive": {
 				Type:     schema.TypeBool,
 				Computed: true,
 			},
-			"last_seen_alive": {
-				Type:     schema.TypeFloat,
-				Computed: true,
-			},
 			"cutoff_timestamp": {
-				Type:     schema.TypeFloat,
-				Computed: true,
+				Type:        schema.TypeString,
+				Computed:    true,
+				Optional:    true,
+				Description: "Only collect data more recent than this timestamp (RFC3339 Formatted)",
 			},
 			"cutoff_relative_time": {
 				Type:     schema.TypeString,
 				Computed: true,
+				Optional: true,
+				Description: `Can be specified instead of cutoffTimestamp to provide a relative offset with respect to the current time.
+Example: use -1h, -1d, or -1w to collect data that's less than one hour, one day, or one week old, respectively.
+You can only use hours, days, and weeks to specify cutoffRelativeTime. No other time units are supported.`,
 			},
 
 			"os_arch": {
@@ -89,10 +87,6 @@ func resourceCollector() *schema.Resource {
 			},
 			"os_time": {
 				Type:     schema.TypeFloat,
-				Computed: true,
-			},
-			"source_sync_mode": {
-				Type:     schema.TypeString,
 				Computed: true,
 			},
 		},
@@ -136,27 +130,26 @@ func resourceCollectorRead(d *schema.ResourceData, meta interface{}) error {
 		return err
 	}
 
+	d.Set("type", collector.CollectorType)
 	d.Set("name", collector.Name)
 	d.Set("description", collector.Description)
 	d.Set("category", collector.Category)
-	d.Set("type", collector.CollectorType)
-	d.Set("collector_version", collector.CollectorVersion)
+
+	d.Set("version", collector.CollectorVersion)
 
 	d.Set("host_name", collector.HostName)
 	d.Set("time_zone", collector.TimeZone)
 	d.Set("ephemeral", collector.Ephemeral)
 
 	d.Set("alive", collector.Alive)
-	d.Set("last_seen_alive", collector.LastSeenAlive)
-	d.Set("cutoff_timestamp", collector.CutoffTimestamp)
-	d.Set("cutoff_relative_time", collector.CutoffRelativeTime)
 
 	d.Set("os_arch", collector.OsArch)
 	d.Set("os_version", collector.OsVersion)
 	d.Set("os_name", collector.OsName)
 	d.Set("os_time", collector.OsTime)
-	d.Set("target_cpu", collector.TargetCPU)
-	d.Set("source_sync_mode", collector.SourceSyncMode)
+
+	// We store cutoff timestamp as string since tf doesn't support int64/time.Time
+	d.Set("cutoff_timestamp", collector.CutoffTimestamp.Format(time.RFC3339))
 
 	return nil
 }
@@ -169,21 +162,21 @@ func resourceCollectorUpdate(d *schema.ResourceData, meta interface{}) error {
 		return fmt.Errorf("invalid id: %s", err)
 	}
 
-	collector := &api.Collector{ID: id}
-
-	collector.Name = d.Get("name").(string)
-	collector.Description = d.Get("description").(string)
-
-	collector.HostName = d.Get("host_name").(string)
-	collector.TimeZone = d.Get("time_zone").(string)
-	collector.Ephemeral = d.Get("ephemeral").(bool)
-
-	if raw, ok := d.GetOk("target_cpu"); ok {
-		collector.TargetCPU = raw.(int64)
+	collector := &api.Collector{
+		ID:            id,
+		CollectorType: d.Get("type").(string),
+		Name:          d.Get("name").(string),
+		Description:   d.Get("description").(string),
+		Category:      d.Get("category").(string),
+		HostName:      d.Get("host_name").(string),
+		TimeZone:      d.Get("time_zone").(string),
+		Ephemeral:     d.Get("ephemeral").(bool),
+		Alive:         d.Get("alive").(bool),
 	}
 
+	// We store cutoff timestamp as string since tf doesn't support int64/time.Time
 	if raw, ok := d.GetOk("cutoff_timestamp"); ok {
-		collector.CutoffTimestamp = raw.(int64)
+		collector.CutoffTimestamp, _ = time.Parse(time.RFC3339, raw.(string))
 	}
 
 	if _, err := client.Collectors().Update(collector); err != nil {
