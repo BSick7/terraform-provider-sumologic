@@ -22,6 +22,9 @@ func resourceHTTPSource() *schema.Resource {
 		Update: resourceHTTPSourceUpdate,
 		Delete: deleteSource,
 		Exists: doesSourceExist,
+		Importer: &schema.ResourceImporter{
+			State: importSource,
+		},
 		Schema: sch,
 	}
 }

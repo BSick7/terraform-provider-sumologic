@@ -16,7 +16,9 @@ func resourceHostedCollector() *schema.Resource {
 		Update: resourceHostedCollectorUpdate,
 		Delete: resourceHostedCollectorDelete,
 		Exists: resourceHostedCollectorExists,
-
+		Importer: &schema.ResourceImporter{
+			State: importCollector,
+		},
 		Schema: map[string]*schema.Schema{
 			"name": {
 				Type:     schema.TypeString,
