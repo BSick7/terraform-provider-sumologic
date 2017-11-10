@@ -1,3 +1,24 @@
+Release v1.12.26 (2017-11-09)
+===
+
+### Service Client Updates
+* `service/ec2`: Updates service API and documentation
+  * Introduces the following features: 1. Create a default subnet in an Availability Zone if no default subnet exists. 2. Spot Fleet integrates with Elastic Load Balancing to enable you to attach one or more load balancers to a Spot Fleet request. When you attach the load balancer, it automatically registers the instance in the Spot Fleet to the load balancers which distributes incoming traffic across the instances.
+* `aws/endpoints`: Updated Regions and Endpoints metadata.
+
+Release v1.12.25 (2017-11-08)
+===
+
+### Service Client Updates
+* `service/application-autoscaling`: Updates service API and documentation
+* `service/batch`: Updates service documentation
+  * Documentation updates for AWS Batch.
+* `service/ec2`: Updates service API and documentation
+  * AWS PrivateLink for Amazon Services - Customers can now privately access Amazon services from their Amazon Virtual Private Cloud (VPC), without using public IPs, and without requiring the traffic to traverse across the Internet.
+* `service/elasticache`: Updates service API and documentation
+  * This release adds online resharding for ElastiCache for Redis offering, providing the ability to add and remove shards from a running cluster. Developers can now dynamically scale-out or scale-in their Redis cluster workloads to adapt to changes in demand. ElastiCache will resize the cluster by adding or removing shards and redistribute hash slots uniformly across the new shard configuration, all while the cluster continues to stay online and serves requests.
+* `aws/endpoints`: Updated Regions and Endpoints metadata.
+
 Release v1.12.24 (2017-11-07)
 ===
 

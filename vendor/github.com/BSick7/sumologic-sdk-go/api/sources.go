@@ -20,25 +20,25 @@ func NewSources(executor *ClientExecutor, collectorID int) *Sources {
 }
 
 type Source struct {
-	ID                         int            `json:"id"`
-	Name                       string         `json:"name"`
-	SourceType                 string         `json:"sourceType,omitempty"`
-	Description                string         `json:"description,omitempty"`
-	Category                   string         `json:"category,omitempty"`
-	HostName                   string         `json:"hostName,omitempty"`
-	TimeZone                   string         `json:"timeZone,omitempty"`
-	ForceTimeZone              bool           `json:"forceTimeZone,omitempty"`
-	AutomaticDateParsing       bool           `json:"automaticDateParsing,omitempty"`
-	MultilineProcessingEnabled bool           `json:"multilineProcessingEnabled,omitempty"`
-	UseAutolineMatching        bool           `json:"useAutolineMatching,omitempty"`
-	ManualPrefixRegexp         string         `json:"manualPrefixRegexp,omitempty"`
-	MessagePerRequest          bool           `json:"messagePerRequest"`
-	DefaultDateFormat          string         `json:"defaultDateFormat,omitempty"`
-	DefaultDateFormats         []DateFormat   `json:"defaultDateFormats,omitempty"`
-	Filters                    []SourceFilter `json:"filters,omitempty"`
-	CutoffTimestamp            time.Time      `json:"-"`
-	CutoffTimestampMs          int64          `json:"cutoffTimestamp,omitempty"`
-	CutoffRelativeTime         string         `json:"cutoffRelativeTime,omitempty"`
+	ID                         int             `json:"id"`
+	Name                       string          `json:"name"`
+	SourceType                 string          `json:"sourceType,omitempty"`
+	Description                string          `json:"description,omitempty"`
+	Category                   string          `json:"category,omitempty"`
+	HostName                   string          `json:"hostName,omitempty"`
+	TimeZone                   string          `json:"timeZone,omitempty"`
+	ForceTimeZone              bool            `json:"forceTimeZone,omitempty"`
+	AutomaticDateParsing       bool            `json:"automaticDateParsing,omitempty"`
+	MultilineProcessingEnabled bool            `json:"multilineProcessingEnabled,omitempty"`
+	UseAutolineMatching        bool            `json:"useAutolineMatching,omitempty"`
+	ManualPrefixRegexp         string          `json:"manualPrefixRegexp,omitempty"`
+	MessagePerRequest          bool            `json:"messagePerRequest"`
+	DefaultDateFormat          string          `json:"defaultDateFormat,omitempty"`
+	DefaultDateFormats         []*DateFormat   `json:"defaultDateFormats,omitempty"`
+	Filters                    []*SourceFilter `json:"filters,omitempty"`
+	CutoffTimestamp            time.Time       `json:"-"`
+	CutoffTimestampMs          int64           `json:"cutoffTimestamp,omitempty"`
+	CutoffRelativeTime         string          `json:"cutoffRelativeTime,omitempty"`
 }
 
 // This will coerce CutoffTimestampMs to CutoffTimestamp
@@ -123,6 +123,10 @@ func (s *Sources) Get(id int) (*Source, error) {
 		item.Source.SyncTimestamp()
 	}
 	return item.Source, nil
+}
+
+func (s *Sources) Exists(id int) (bool, error) {
+	return IsObjectFound(s.Get(id))
 }
 
 func (s *Sources) Create(source *SourceCreate) (*Source, error) {

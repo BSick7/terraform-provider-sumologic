@@ -127,6 +127,10 @@ func (c *Collectors) Get(id int) (*Collector, error) {
 	return item.Collector, nil
 }
 
+func (c *Collectors) Exists(id int) (bool, error) {
+	return IsObjectFound(c.Get(id))
+}
+
 func (c *Collectors) Create(collector *CollectorCreate) (*Collector, error) {
 	req, err := c.executor.NewRequest()
 	if err != nil {
