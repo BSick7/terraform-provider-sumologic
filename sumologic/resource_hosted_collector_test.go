@@ -9,7 +9,7 @@ import (
 	"github.com/hashicorp/terraform/terraform"
 )
 
-func TestAccCollector_Basic(t *testing.T) {
+func TestAccHostedCollector_Basic(t *testing.T) {
 	var collector api.Collector
 
 	testCheck := func(s *terraform.State) error {
