@@ -43,6 +43,6 @@ resource "sumologic_hosted_collector" "collector2" {
 resource "sumologic_http_source" "source1" {
   collector_id = "${sumologic_hosted_collector.collector2.id}"
   name         = "tf-acc-source1"
- description   = "Source 1 (TF Acceptance Test)"
+  description  = "Source 1 (TF Acceptance Test)"
 }
 `)

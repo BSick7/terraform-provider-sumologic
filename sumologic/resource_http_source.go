@@ -1,14 +1,12 @@
 package sumologic
 
 import (
-	"fmt"
-
 	"github.com/BSick7/sumologic-sdk-go/api"
 	"github.com/hashicorp/terraform/helper/schema"
 )
 
 func resourceHTTPSource() *schema.Resource {
-	sch := defaultSchema()
+	sch := resourceSourceSchema()
 	sch["message_per_request"] = &schema.Schema{
 		Type:        schema.TypeBool,
 		Optional:    true,
@@ -18,10 +16,10 @@ func resourceHTTPSource() *schema.Resource {
 
 	return &schema.Resource{
 		Create: resourceHTTPSourceCreate,
-		Read:   readSourceFromSumologic,
+		Read:   resourceHTTPSourceRead,
 		Update: resourceHTTPSourceUpdate,
-		Delete: deleteSource,
-		Exists: doesSourceExist,
+		Delete: resourceSourceDelete,
+		Exists: resourceSourceExists,
 		Importer: &schema.ResourceImporter{
 			State: importSource,
 		},
@@ -30,33 +28,34 @@ func resourceHTTPSource() *schema.Resource {
 }
 
 func resourceHTTPSourceCreate(d *schema.ResourceData, meta interface{}) error {
-	source, err := createSource(d, meta, "HTTP")
+	err := resourceSourceCreate(d, meta, func(source *api.SourceCreate) error {
+		source.SourceType = "HTTP"
+		raw, ok := d.GetOkExists("message_per_request")
+		mpr := ok && raw.(bool)
+		source.MessagePerRequest = &mpr
+		return nil
+	})
 	if err != nil {
 		return err
-	} else if source == nil {
-		return fmt.Errorf("source was not created")
 	}
-	d.SetId(fmt.Sprintf("%d", source.ID))
-
 	if err := resourceHTTPSourceUpdate(d, meta); err != nil {
 		return err
 	}
+	return resourceHTTPSourceRead(d, meta)
+}
 
-	return readSourceFromSumologic(d, meta)
+func resourceHTTPSourceRead(d *schema.ResourceData, meta interface{}) error {
+	return resourceSourceRead(d, meta, func(source *api.Source) error {
+		d.Set("message_per_request", source.MessagePerRequest)
+		return nil
+	})
 }
 
 func resourceHTTPSourceUpdate(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*api.Client)
-	collectorID := d.Get("collector_id").(int)
-
-	source, err := readSourceFromTerraform(d)
-	if err != nil {
-		return fmt.Errorf("error reading terraform values for http source: %s", err)
-	}
-	source.SourceType = "HTTP"
-
-	if _, err := client.Collectors().Sources(collectorID).Update(source); err != nil {
-		return err
-	}
-	return nil
+	return resourceSourceUpdate(d, meta, func(source *api.Source) error {
+		source.SourceType = "HTTP"
+		raw, ok := d.GetOkExists("message_per_request")
+		source.MessagePerRequest = ok && raw.(bool)
+		return nil
+	})
 }

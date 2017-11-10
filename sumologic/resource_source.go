@@ -12,7 +12,7 @@ import (
 // All Source Types and parameters:
 // https://help.sumologic.com/Send-Data/Sources/03Use-JSON-to-Configure-Sources
 
-func defaultSchema() map[string]*schema.Schema {
+func resourceSourceSchema() map[string]*schema.Schema {
 	return map[string]*schema.Schema{
 		"collector_id": {
 			Type:     schema.TypeInt,
@@ -130,39 +130,6 @@ You can only use hours, days, and weeks to specify cutoffRelativeTime. No other 
 	}
 }
 
-func readSourceFromTerraform(d *schema.ResourceData) (*api.Source, error) {
-	id, err := strconv.Atoi(d.Id())
-	if err != nil {
-		return nil, fmt.Errorf("invalid source id: %s", err)
-	}
-
-	source := &api.Source{
-		ID:                         id,
-		Name:                       d.Get("name").(string),
-		Description:                d.Get("description").(string),
-		Category:                   d.Get("category").(string),
-		HostName:                   d.Get("host").(string),
-		TimeZone:                   d.Get("time_zone").(string),
-		ForceTimeZone:              d.Get("force_time_zone").(bool),
-		AutomaticDateParsing:       d.Get("automatic_date_parsing").(bool),
-		MultilineProcessingEnabled: d.Get("multiline_processing_enabled").(bool),
-		UseAutolineMatching:        d.Get("use_autoline_matching").(bool),
-		ManualPrefixRegexp:         d.Get("manual_prefix_regexp").(string),
-		DefaultDateFormat:          d.Get("default_date_format").(string),
-		CutoffRelativeTime:         d.Get("cutoff_relative_time").(string),
-	}
-
-	// We store cutoff timestamp as string since tf doesn't support int64/time.Time
-	if raw, ok := d.GetOk("cutoff_timestamp"); ok {
-		source.CutoffTimestamp, _ = time.Parse(time.RFC3339, raw.(string))
-	}
-
-	source.DefaultDateFormats = readSourceDefaultDateFormatsFromTerraform(d)
-	source.Filters = readSourceFiltersFromTerraform(d)
-
-	return source, nil
-}
-
 func readSourceDefaultDateFormatsFromTerraform(d *schema.ResourceData) []*api.DateFormat {
 	formats := make([]*api.DateFormat, 0)
 
@@ -201,7 +168,33 @@ func readSourceFiltersFromTerraform(d *schema.ResourceData) []*api.SourceFilter 
 	return filters
 }
 
-func readSourceFromSumologic(d *schema.ResourceData, meta interface{}) error {
+func resourceSourceCreate(d *schema.ResourceData, meta interface{}, custom func(*api.SourceCreate) error) error {
+	client := meta.(*api.Client)
+	collectorID := d.Get("collector_id").(int)
+
+	newSource := &api.SourceCreate{
+		Name:        d.Get("name").(string),
+		Description: d.Get("description").(string),
+		Category:    d.Get("category").(string),
+	}
+
+	if custom != nil {
+		if err := custom(newSource); err != nil {
+			return err
+		}
+	}
+
+	source, err := client.Collectors().Sources(collectorID).Create(newSource)
+	if err != nil {
+		return err
+	} else if source == nil {
+		return fmt.Errorf("source was not created")
+	}
+	d.SetId(fmt.Sprintf("%d", source.ID))
+	return nil
+}
+
+func resourceSourceRead(d *schema.ResourceData, meta interface{}, custom func(*api.Source) error) error {
 	client := meta.(*api.Client)
 	collectorID := d.Get("collector_id").(int)
 
@@ -242,27 +235,62 @@ func readSourceFromSumologic(d *schema.ResourceData, meta interface{}) error {
 	// We store cutoff timestamp as string since tf doesn't support int64/time.Time
 	d.Set("cutoff_timestamp", source.CutoffTimestamp.Format(time.RFC3339))
 
+	if custom != nil {
+		if err := custom(source); err != nil {
+			return err
+		}
+	}
+
 	return nil
 }
 
-func createSource(d *schema.ResourceData, meta interface{}, sourceType string) (*api.Source, error) {
+func resourceSourceUpdate(d *schema.ResourceData, meta interface{}, custom func(*api.Source) error) error {
 	client := meta.(*api.Client)
 	collectorID := d.Get("collector_id").(int)
 
-	mpr := d.Get("message_per_request").(bool)
-
-	newSource := &api.SourceCreate{
-		SourceType:        sourceType,
-		Name:              d.Get("name").(string),
-		Description:       d.Get("description").(string),
-		Category:          d.Get("category").(string),
-		MessagePerRequest: &mpr,
+	id, err := strconv.Atoi(d.Id())
+	if err != nil {
+		return fmt.Errorf("invalid source id: %s", err)
 	}
 
-	return client.Collectors().Sources(collectorID).Create(newSource)
+	source := &api.Source{
+		ID:                         id,
+		Name:                       d.Get("name").(string),
+		Description:                d.Get("description").(string),
+		Category:                   d.Get("category").(string),
+		HostName:                   d.Get("host").(string),
+		TimeZone:                   d.Get("time_zone").(string),
+		ForceTimeZone:              d.Get("force_time_zone").(bool),
+		AutomaticDateParsing:       d.Get("automatic_date_parsing").(bool),
+		MultilineProcessingEnabled: d.Get("multiline_processing_enabled").(bool),
+		UseAutolineMatching:        d.Get("use_autoline_matching").(bool),
+		ManualPrefixRegexp:         d.Get("manual_prefix_regexp").(string),
+		DefaultDateFormat:          d.Get("default_date_format").(string),
+		CutoffRelativeTime:         d.Get("cutoff_relative_time").(string),
+	}
+
+	// We store cutoff timestamp as string since tf doesn't support int64/time.Time
+	if raw, ok := d.GetOk("cutoff_timestamp"); ok {
+		source.CutoffTimestamp, _ = time.Parse(time.RFC3339, raw.(string))
+	}
+
+	source.DefaultDateFormats = readSourceDefaultDateFormatsFromTerraform(d)
+	source.Filters = readSourceFiltersFromTerraform(d)
+
+	if custom != nil {
+		if err := custom(source); err != nil {
+			return err
+		}
+	}
+
+	if _, err := client.Collectors().Sources(collectorID).Update(source); err != nil {
+		return err
+	}
+
+	return nil
 }
 
-func deleteSource(d *schema.ResourceData, meta interface{}) error {
+func resourceSourceDelete(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*api.Client)
 	collectorID := d.Get("collector_id").(int)
 
@@ -274,7 +302,7 @@ func deleteSource(d *schema.ResourceData, meta interface{}) error {
 	return client.Collectors().Sources(collectorID).Delete(&api.Source{ID: id})
 }
 
-func doesSourceExist(d *schema.ResourceData, meta interface{}) (bool, error) {
+func resourceSourceExists(d *schema.ResourceData, meta interface{}) (bool, error) {
 	client := meta.(*api.Client)
 	collectorID := d.Get("collector_id").(int)
 
