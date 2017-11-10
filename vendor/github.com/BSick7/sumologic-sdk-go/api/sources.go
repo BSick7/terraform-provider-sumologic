@@ -39,6 +39,9 @@ type Source struct {
 	CutoffTimestamp            time.Time       `json:"-"`
 	CutoffTimestampMs          int64           `json:"cutoffTimestamp,omitempty"`
 	CutoffRelativeTime         string          `json:"cutoffRelativeTime,omitempty"`
+	PathExpression             string          `json:"pathExpression,omitempty"`
+	Blacklist                  []string        `json:"blacklist,omitempty"`
+	Encoding                   string          `json:"encoding,omitempty"`
 }
 
 // This will coerce CutoffTimestampMs to CutoffTimestamp
@@ -54,11 +57,12 @@ func (s *Source) SyncTimestampMs() {
 }
 
 type SourceCreate struct {
-	SourceType        string `json:"sourceType"`
-	Name              string `json:"name"`
-	Description       string `json:"description"`
-	Category          string `json:"category"`
-	MessagePerRequest *bool  `json:"messagePerRequest,omitempty"`
+	SourceType        string  `json:"sourceType"`
+	Name              string  `json:"name"`
+	Description       string  `json:"description"`
+	Category          string  `json:"category"`
+	MessagePerRequest *bool   `json:"messagePerRequest,omitempty"`
+	PathExpression    *string `json:"pathExpression,omitempty"`
 }
 
 type SourceFilter struct {

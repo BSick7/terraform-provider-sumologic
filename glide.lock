@@ -50,7 +50,7 @@ imports:
 - name: github.com/blang/semver
   version: 2ee87856327ba09384cabd113bc6b5d174e9ec0f
 - name: github.com/BSick7/sumologic-sdk-go
-  version: 38e53d3b1844d89d763a2dba5e7dfab31bb9f4b0
+  version: 2443989ff68c5938f81b8351a86eeb54c320fb71
   subpackages:
   - api
 - name: github.com/davecgh/go-spew
