@@ -72,20 +72,46 @@ func defaultSchema() map[string]*schema.Schema {
 			Optional: true,
 		},
 		"default_date_formats": {
-			Type: schema.TypeList,
-			Elem: &schema.Schema{
-				Type: schema.TypeString,
-			},
+			Type:     schema.TypeList,
 			Computed: true,
 			Optional: true,
+			Elem: &schema.Resource{
+				Schema: map[string]*schema.Schema{
+					"format": {
+						Type:     schema.TypeString,
+						Required: true,
+					},
+					"locator": {
+						Type:     schema.TypeString,
+						Optional: true,
+					},
+				},
+			},
 		},
 		"filters": {
-			Type: schema.TypeList,
-			Elem: &schema.Schema{
-				Type: schema.TypeString,
-			},
+			Type:     schema.TypeSet,
 			Computed: true,
 			Optional: true,
+			Elem: &schema.Resource{
+				Schema: map[string]*schema.Schema{
+					"type": {
+						Type:     schema.TypeString,
+						Required: true,
+					},
+					"name": {
+						Type:     schema.TypeString,
+						Required: true,
+					},
+					"regexp": {
+						Type:     schema.TypeString,
+						Required: true,
+					},
+					"mask": {
+						Type:     schema.TypeString,
+						Optional: true,
+					},
+				},
+			},
 		},
 		"cutoff_timestamp": {
 			Type:        schema.TypeString,
@@ -131,19 +157,48 @@ func readSourceFromTerraform(d *schema.ResourceData) (*api.Source, error) {
 		source.CutoffTimestamp, _ = time.Parse(time.RFC3339, raw.(string))
 	}
 
-	if raw, ok := d.GetOk("default_date_formats"); ok {
-		if ddfs, valid := raw.([]api.DateFormat); valid {
-			source.DefaultDateFormats = ddfs
-		}
-	}
-
-	if raw, ok := d.GetOk("filters"); ok {
-		if filters, valid := raw.([]api.SourceFilter); valid {
-			source.Filters = filters
-		}
-	}
+	source.DefaultDateFormats = readSourceDefaultDateFormatsFromTerraform(d)
+	source.Filters = readSourceFiltersFromTerraform(d)
 
 	return source, nil
+}
+
+func readSourceDefaultDateFormatsFromTerraform(d *schema.ResourceData) []*api.DateFormat {
+	formats := make([]*api.DateFormat, 0)
+
+	if v, ok := d.GetOk("default_date_formats"); ok {
+		vL := v.(*schema.Set).List()
+		for _, v := range vL {
+			sddf := v.(map[string]interface{})
+			format := &api.DateFormat{
+				Format:  sddf["format"].(string),
+				Locator: sddf["locator"].(string),
+			}
+			formats = append(formats, format)
+		}
+	}
+
+	return formats
+}
+
+func readSourceFiltersFromTerraform(d *schema.ResourceData) []*api.SourceFilter {
+	filters := make([]*api.SourceFilter, 0)
+
+	if v, ok := d.GetOk("filters"); ok {
+		vL := v.(*schema.Set).List()
+		for _, v := range vL {
+			sf := v.(map[string]interface{})
+			filter := &api.SourceFilter{
+				FilterType: sf["type"].(string),
+				Name:       sf["name"].(string),
+				Regexp:     sf["regexp"].(string),
+				Mask:       sf["mask"].(string),
+			}
+			filters = append(filters, filter)
+		}
+	}
+
+	return filters
 }
 
 func readSourceFromSumologic(d *schema.ResourceData, meta interface{}) error {
@@ -228,12 +283,5 @@ func doesSourceExist(d *schema.ResourceData, meta interface{}) (bool, error) {
 		return false, fmt.Errorf("invalid id: %s", err)
 	}
 
-	_, err = client.Collectors().Sources(collectorID).Get(id)
-	if serr, ok := err.(*api.SumologicError); ok && serr.Status == 404 {
-		return false, nil
-	} else if err != nil {
-		return false, err
-	}
-
-	return true, nil
+	return client.Collectors().Sources(collectorID).Exists(id)
 }
