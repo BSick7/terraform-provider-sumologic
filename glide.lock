@@ -1,5 +1,5 @@
-hash: 1157c6fc8956062613f5c8e2a116cea68e68a83cd6bde03e1291e9798cfe2115
-updated: 2017-11-10T11:05:27.8530741-05:00
+hash: a607807607d9f36d40db20dbae14d9e6710dca62fe77482d32e1c74c506e1c13
+updated: 2017-11-14T18:11:55.4409871-05:00
 imports:
 - name: github.com/agext/levenshtein
   version: 5f10fee965225ac1eecdc234c09daf5cd9e7f7b6
@@ -14,7 +14,7 @@ imports:
 - name: github.com/armon/go-radix
   version: 1fca145dffbcaa8fe914309b1ec0cfc67500fe61
 - name: github.com/aws/aws-sdk-go
-  version: 434bb9f6fc01e33df35232df61ea227c773ebcde
+  version: 08818f44beb68debdcf8b159c08a41d7965e8273
   subpackages:
   - aws
   - aws/awserr
@@ -50,7 +50,7 @@ imports:
 - name: github.com/blang/semver
   version: 2ee87856327ba09384cabd113bc6b5d174e9ec0f
 - name: github.com/BSick7/sumologic-sdk-go
-  version: 2443989ff68c5938f81b8351a86eeb54c320fb71
+  version: 1343e29ade5ae0d0aa06c1fe8b9992bc0c5d7b2f
   subpackages:
   - api
 - name: github.com/davecgh/go-spew
@@ -58,9 +58,9 @@ imports:
   subpackages:
   - spew
 - name: github.com/go-ini/ini
-  version: f280b3ba517bf5fc98922624f21fb0e7a92adaec
+  version: 7e7da451323b6766da368f8a1e8ec9a88a16b4a0
 - name: github.com/golang/protobuf
-  version: 1643683e1b54a9e88ad26d98f81400c8c9d9f4f9
+  version: 1e59b77b52bf8e4b449a57e6f79f21226d571845
   subpackages:
   - proto
   - ptypes
@@ -181,7 +181,7 @@ imports:
   - cty/json
   - cty/set
 - name: golang.org/x/crypto
-  version: 6a293f2d4b14b8e6d3f0539e383f6d0d30fce3fd
+  version: 9f005a07e0d31d45e6656d241bb5c0f2efd4bc94
   subpackages:
   - bcrypt
   - blowfish
@@ -205,7 +205,7 @@ imports:
   - lex/httplex
   - trace
 - name: golang.org/x/sys
-  version: 1e2299c37cc91a509f1b12369872d27be0ce98a6
+  version: bf42f188b9bc6f2cf5b8ee5a912ef1aedd0eba4c
   subpackages:
   - unix
 - name: golang.org/x/text
@@ -220,7 +220,7 @@ imports:
   subpackages:
   - googleapis/rpc/status
 - name: google.golang.org/grpc
-  version: de2209a968d48e8970546c8a710189f7461370f7
+  version: 409fd8e23b1b48140bc8dc73950f762063baa859
   subpackages:
   - balancer
   - balancer/roundrobin

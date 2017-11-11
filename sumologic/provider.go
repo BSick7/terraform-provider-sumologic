@@ -32,8 +32,8 @@ func Provider() terraform.ResourceProvider {
 
 		ResourcesMap: map[string]*schema.Resource{
 			"sumologic_hosted_collector":  resourceHostedCollector(),
+			"sumologic_cloudtrail_source": resourceCloudTrailSource(),
 			"sumologic_http_source":       resourceHTTPSource(),
-			"sumologic_local_file_source": resourceLocalFileSource(),
 		},
 
 		ConfigureFunc: providerConfigure,

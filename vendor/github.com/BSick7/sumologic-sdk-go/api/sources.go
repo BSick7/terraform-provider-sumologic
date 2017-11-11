@@ -42,27 +42,51 @@ type Source struct {
 	PathExpression             string          `json:"pathExpression,omitempty"`
 	Blacklist                  []string        `json:"blacklist,omitempty"`
 	Encoding                   string          `json:"encoding,omitempty"`
+	ContentType                string          `json:"contentType,omitempty"`
+	ScanInterval               time.Duration   `json:"-"`
+	ScanIntervalMs             int64           `json:"scanInterval,omitempty"`
+	Paused                     bool            `json:"paused"`
+	ThirdPartyRef              *ThirdPartyRef  `json:"thirdPartyRef,omitempty"`
 }
 
-// This will coerce CutoffTimestampMs to CutoffTimestamp
-func (s *Source) SyncTimestamp() {
+// This will coerce
+//  - CutoffTimestampMs to CutoffTimestamp
+//  - ScanIntervalMs to ScanInterval
+func (s *Source) SyncFromSumologic() {
+	// Sumologic passes this around as number of milliseconds since epoch
+	// time.Unix() returns number of seconds
+	s.CutoffTimestamp = time.Unix(s.CutoffTimestampMs*1000, 0)
+	s.ScanInterval = time.Duration(s.ScanIntervalMs) * time.Millisecond
+}
+
+// This will coerce
+//  - CutoffTimestamp to CutoffTimestampMs
+//  - ScanInterval to ScanIntervalMs
+func (s *Source) SyncToSumologic() {
 	// Sumologic passes this around as number of milliseconds since epoch
 	// time.Unix() returns number of seconds
 	s.CutoffTimestampMs = s.CutoffTimestamp.Unix() * 1000
-}
-
-// This will coerce CutoffTimestamp to CutoffTimestampMs
-func (s *Source) SyncTimestampMs() {
-	s.CutoffTimestamp = time.Unix(s.CutoffTimestampMs*1000, 0)
+	s.ScanIntervalMs = int64(s.ScanInterval / time.Millisecond)
 }
 
 type SourceCreate struct {
-	SourceType        string  `json:"sourceType"`
-	Name              string  `json:"name"`
-	Description       string  `json:"description"`
-	Category          string  `json:"category"`
-	MessagePerRequest *bool   `json:"messagePerRequest,omitempty"`
-	PathExpression    *string `json:"pathExpression,omitempty"`
+	SourceType        string         `json:"sourceType"`
+	Name              string         `json:"name"`
+	Description       string         `json:"description"`
+	Category          string         `json:"category"`
+	MessagePerRequest *bool          `json:"messagePerRequest,omitempty"`
+	PathExpression    *string        `json:"pathExpression,omitempty"`
+	ContentType       *string        `json:"contentType,omitempty"`
+	ScanInterval      *time.Duration `json:"-"`
+	ScanIntervalMs    *int64         `json:"scanInterval,omitempty"`
+	Paused            *bool          `json:"paused,omitempty"`
+}
+
+func (s *SourceCreate) SyncToSumologic() {
+	if s.ScanInterval != nil {
+		si := int64(*s.ScanInterval / time.Millisecond)
+		s.ScanIntervalMs = &si
+	}
 }
 
 type SourceFilter struct {
@@ -75,6 +99,28 @@ type SourceFilter struct {
 type DateFormat struct {
 	Format  string `json:"format"`
 	Locator string `json:"locator,omitempty"`
+}
+
+type ThirdPartyRef struct {
+	Resources []*ThirdPartyRefResource `json:"resources"`
+}
+
+type ThirdPartyRefResource struct {
+	ServiceType    string                               `json:"serviceType"`
+	Path           *ThirdPartyRefResourcePath           `json:"path"`
+	Authentication *ThirdPartyRefResourceAuthentication `json:"authentication"`
+}
+
+type ThirdPartyRefResourcePath struct {
+	Type           string `json:"type"`
+	BucketName     string `json:"bucketName"`
+	PathExpression string `json:"pathExpression"`
+}
+
+type ThirdPartyRefResourceAuthentication struct {
+	Type      string `json:"type"`
+	AccessKey string `json:"awsId"`
+	SecretKey string `json:"awsKey"`
 }
 
 func (s *Sources) List() ([]*Source, error) {
@@ -98,7 +144,7 @@ func (s *Sources) List() ([]*Source, error) {
 	}
 	if list.Sources != nil {
 		for _, source := range list.Sources {
-			source.SyncTimestamp()
+			source.SyncFromSumologic()
 		}
 	}
 	return list.Sources, nil
@@ -124,7 +170,7 @@ func (s *Sources) Get(id int) (*Source, error) {
 		return nil, err
 	}
 	if item.Source != nil {
-		item.Source.SyncTimestamp()
+		item.Source.SyncFromSumologic()
 	}
 	return item.Source, nil
 }
@@ -134,6 +180,8 @@ func (s *Sources) Exists(id int) (bool, error) {
 }
 
 func (s *Sources) Create(source *SourceCreate) (*Source, error) {
+	source.SyncToSumologic()
+
 	req, err := s.executor.NewRequest()
 	if err != nil {
 		return nil, err
@@ -157,11 +205,14 @@ func (s *Sources) Create(source *SourceCreate) (*Source, error) {
 	if err := res.BodyJSON(item); err != nil {
 		return nil, err
 	}
+	if item.Source != nil {
+		item.Source.SyncFromSumologic()
+	}
 	return item.Source, nil
 }
 
 func (s *Sources) Update(source *Source) (*Source, error) {
-	source.SyncTimestampMs()
+	source.SyncToSumologic()
 
 	startreq, err := s.executor.NewRequest()
 	if err != nil {
@@ -197,6 +248,9 @@ func (s *Sources) Update(source *Source) (*Source, error) {
 	item := &putResponse{}
 	if err := finishres.BodyJSON(item); err != nil {
 		return nil, err
+	}
+	if item.Source != nil {
+		item.Source.SyncFromSumologic()
 	}
 	return item.Source, nil
 }
