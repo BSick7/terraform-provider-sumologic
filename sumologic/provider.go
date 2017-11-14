@@ -32,7 +32,11 @@ func Provider() terraform.ResourceProvider {
 
 		ResourcesMap: map[string]*schema.Resource{
 			"sumologic_hosted_collector":  resourceHostedCollector(),
-			"sumologic_cloudtrail_source": resourceCloudTrailSource(),
+			"sumologic_cloudtrail_source": resourceBucketSource("AwsCloudTrailBucket"),
+			"sumologic_cloudfront_source": resourceBucketSource("AwsCloudFrontBucket"),
+			"sumologic_elb_source":        resourceBucketSource("AwsElbBucket"),
+			"sumologic_s3_source":         resourceBucketSource("AwsS3Bucket"),
+			"sumologic_s3_audit_source":   resourceBucketSource("AwsS3AuditBucket"),
 			"sumologic_http_source":       resourceHTTPSource(),
 		},
 

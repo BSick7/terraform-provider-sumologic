@@ -9,7 +9,7 @@ import (
 	"github.com/hashicorp/terraform/terraform"
 )
 
-func TestAccCloudTrailSource_Basic(t *testing.T) {
+func TestAccBucketSource_CloudTrail(t *testing.T) {
 	var source api.Source
 
 	testCheck := func(s *terraform.State) error {
