@@ -37,6 +37,7 @@ func Provider() terraform.ResourceProvider {
 			"sumologic_elb_source":        resourceBucketSource("AwsElbBucket"),
 			"sumologic_s3_source":         resourceBucketSource("AwsS3Bucket"),
 			"sumologic_s3_audit_source":   resourceBucketSource("AwsS3AuditBucket"),
+			"sumologic_cloudwatch_source": resourceCloudWatchSource(),
 			"sumologic_syslog_source":     resourceSyslogSource(),
 			"sumologic_http_source":       resourceHTTPSource(),
 		},

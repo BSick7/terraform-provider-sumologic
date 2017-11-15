@@ -112,9 +112,11 @@ type ThirdPartyRefResource struct {
 }
 
 type ThirdPartyRefResourcePath struct {
-	Type           string `json:"type"`
-	BucketName     string `json:"bucketName"`
-	PathExpression string `json:"pathExpression"`
+	Type              string   `json:"type"`
+	BucketName        string   `json:"bucketName"`
+	PathExpression    string   `json:"pathExpression"`
+	LimitToRegions    []string `json:"limitToRegions"`
+	LimitToNamespaces []string `json:"limitToNamespaces"`
 }
 
 type ThirdPartyRefResourceAuthentication struct {
