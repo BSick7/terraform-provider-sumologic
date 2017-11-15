@@ -62,3 +62,14 @@ func testAccCheckSourceDestroy(resourceType string) func(*terraform.State) error
 		return nil
 	}
 }
+
+func testAccCheckSourcesDestroy(resourceTypes []string) func(*terraform.State) error {
+	return func(s *terraform.State) error {
+		for _, rt := range resourceTypes {
+			if err := testAccCheckSourceDestroy(rt)(s); err != nil {
+				return err
+			}
+		}
+		return nil
+	}
+}
