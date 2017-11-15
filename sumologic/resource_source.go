@@ -72,7 +72,7 @@ func resourceSourceSchema() map[string]*schema.Schema {
 			Optional: true,
 		},
 		"default_date_formats": {
-			Type:     schema.TypeList,
+			Type:     schema.TypeSet,
 			Computed: true,
 			Optional: true,
 			Elem: &schema.Resource{
