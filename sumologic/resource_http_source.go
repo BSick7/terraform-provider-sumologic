@@ -13,6 +13,11 @@ func resourceHTTPSource() *schema.Resource {
 		Default:     false,
 		Description: "Enable One Message Per Request",
 	}
+	sch["url"] = &schema.Schema{
+		Type:        schema.TypeString,
+		Computed:    true,
+		Description: "HTTP source address to send data to collector",
+	}
 
 	return &schema.Resource{
 		Create: resourceHTTPSourceCreate,
@@ -47,6 +52,7 @@ func resourceHTTPSourceCreate(d *schema.ResourceData, meta interface{}) error {
 func resourceHTTPSourceRead(d *schema.ResourceData, meta interface{}) error {
 	return resourceSourceRead(d, meta, func(source *api.Source) error {
 		d.Set("message_per_request", source.MessagePerRequest)
+		d.Set("url", source.URL)
 		return nil
 	})
 }

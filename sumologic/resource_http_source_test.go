@@ -16,6 +16,9 @@ func TestAccHTTPSource_Basic(t *testing.T) {
 		if source.ID <= 0 {
 			return fmt.Errorf("expected source to be created")
 		}
+		if source.URL == nil || *source.URL == "" {
+			return fmt.Errorf("expected source address to be non-empty")
+		}
 		return nil
 	}
 

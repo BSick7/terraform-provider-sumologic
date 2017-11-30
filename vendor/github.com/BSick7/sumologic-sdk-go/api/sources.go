@@ -47,6 +47,7 @@ type Source struct {
 	ScanIntervalMs             int64           `json:"scanInterval,omitempty"`
 	Paused                     bool            `json:"paused"`
 	ThirdPartyRef              *ThirdPartyRef  `json:"thirdPartyRef,omitempty"`
+	URL                        *string         `json:"url"`
 }
 
 // This will coerce
